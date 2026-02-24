@@ -111,6 +111,13 @@ resource "aws_iam_role_policy" "github_actions_s3_cloudfront" {
       {
         Effect = "Allow"
         Action = [
+          "s3:ListAllMyBuckets"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
@@ -132,6 +139,7 @@ resource "aws_iam_role_policy" "github_actions_s3_cloudfront" {
     ]
   })
 }
+
 
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn

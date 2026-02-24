@@ -101,6 +101,46 @@ resource "aws_iam_role_policy" "github_actions_ecs" {
   })
 }
 
+resource "aws_iam_role_policy" "github_actions_s3_cloudfront" {
+  name = "github-actions-s3-cloudfront-policy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListAllMyBuckets"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "${aws_s3_bucket.frontend.arn}",
+          "${aws_s3_bucket.frontend.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateInvalidation",
+          "cloudfront:ListDistributions"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
