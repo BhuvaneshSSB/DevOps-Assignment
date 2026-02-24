@@ -57,27 +57,30 @@ jobs:
           aws ecs describe-task-definition \
             --task-definition ${{ env.ECS_TASK_DEFINITION_DEV }} \
             --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition' > task-def.json
+            --query 'taskDefinition' > task-def-full.json
 
-      - name: Update task definition with new image
+      - name: Clean task definition for re-registration
         run: |
-          sed -i "s|${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:.*|${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}|g" task-def.json
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' task-def-full.json > task-def-clean.json
+          cat task-def-clean.json
+
+      - name: Update image in task definition
+        run: |
+          jq ".containerDefinitions[0].image = \"${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}\"" task-def-clean.json > task-def-updated.json
+          cat task-def-updated.json
 
       - name: Register new task definition
         run: |
-          NEW_TASK_DEF=$(aws ecs register-task-definition \
-            --cli-input-json file://task-def.json \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          echo "TASK_DEF_ARN=$NEW_TASK_DEF" >> $GITHUB_ENV
+          aws ecs register-task-definition \
+            --cli-input-json file://task-def-updated.json \
+            --region ${{ env.AWS_REGION }}
 
       - name: Update ECS service
         run: |
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER_DEV }} \
             --service ${{ env.ECS_SERVICE_DEV }} \
-            --task-definition ${{ env.TASK_DEF_ARN }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION_DEV }} \
             --region ${{ env.AWS_REGION }}
 
       - name: Wait for service to stabilize
