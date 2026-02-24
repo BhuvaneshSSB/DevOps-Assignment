@@ -1,125 +1,75 @@
-# DevOps Assignment
-
-This project consists of a FastAPI backend and a Next.js frontend that communicates with the backend.
+# DevOps Assignment - AWS Infrastructure
 
 ## Project Structure
-
 ```
-.
-├── backend/               # FastAPI backend
-│   ├── app/
-│   │   └── main.py       # Main FastAPI application
-│   └── requirements.txt    # Python dependencies
-└── frontend/              # Next.js frontend
-    ├── pages/
-    │   └── index.js     # Main page
-    ├── public/            # Static files
-    └── package.json       # Node.js dependencies
+infrastructure/
+├── terraform/
+│   ├── aws-dev/
+│   ├── aws-staging/
+│   └── aws-prod/
+└── docker/
+    └── Dockerfile.backend
 ```
 
-## Prerequisites
+## AWS Infrastructure Overview
 
-- Python 3.8+
-- Node.js 16+
-- npm or yarn
+Each environment (dev, staging, prod) consists of:
 
-## Backend Setup
+- VPC with public and private subnets across 2 availability zones
+- ECS Fargate cluster for containerized backend
+- Application Load Balancer for traffic distribution
+- Auto Scaling Group for automatic scaling based on CPU/Memory
+- S3 bucket for frontend static assets
+- CloudFront CDN for global content delivery
+- ECR repository for Docker images
+- CloudWatch logs for monitoring
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+## State Management
 
-2. Create a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-   ```
+Terraform state is stored in S3 with DynamoDB locking enabled:
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+- Bucket: `terraform-state-aws-devops-[timestamp]`
+- State files: `devops-assignment/dev/`, `devops-assignment/staging/`, `devops-assignment/prod/`
+- Lock table: `terraform-lock`
+- Region: `ap-south-1` (Primary), `ap-south-2` (Fallback)
 
-4. Run the FastAPI server:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
+## Deployment
 
-   The backend will be available at `http://localhost:8000`
+### Prerequisites
 
-## Frontend Setup
+- AWS CLI configured with credentials
+- Terraform installed (v1.0+)
+- Docker installed
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn
-   ```
-
-3. Configure the backend URL (if different from default):
-   - Open `.env.local`
-   - Update `NEXT_PUBLIC_API_URL` with your backend URL
-   - Example: `NEXT_PUBLIC_API_URL=https://your-backend-url.com`
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-   The frontend will be available at `http://localhost:3000`
-
-## Changing the Backend URL
-
-To change the backend URL that the frontend connects to:
-
-1. Open the `.env.local` file in the frontend directory
-2. Update the `NEXT_PUBLIC_API_URL` variable with your new backend URL
-3. Save the file
-4. Restart the Next.js development server for changes to take effect
-
-Example:
-```
-NEXT_PUBLIC_API_URL=https://your-new-backend-url.com
+### Initialize
+```bash
+cd infrastructure/terraform/aws-dev
+terraform init
+terraform validate
 ```
 
-## For deployment:
-   ```bash
-   npm run build
-   # or
-   yarn build
-   ```
+### Deploy
+```bash
+terraform plan -out=dev.plan
+terraform apply dev.plan
+```
 
-   AND
+### Outputs
 
-   ```bash
-   npm run start
-   # or
-   yarn start
-   ```
+After deployment, outputs include:
 
-   The frontend will be available at `http://localhost:3000`
+- ALB DNS name for backend access
+- CloudFront domain for frontend
+- ECR repository URL
+- S3 bucket name
 
-## Testing the Integration
+## Environments
 
-1. Ensure both backend and frontend servers are running
-2. Open the frontend in your browser (default: http://localhost:3000)
-3. If everything is working correctly, you should see:
-   - A status message indicating the backend is connected
-   - The message from the backend: "You've successfully integrated the backend!"
-   - The current backend URL being used
+Dev, Staging, and Prod are completely isolated with different:
 
-## API Endpoints
+- Instance counts
+- CPU/Memory allocation
+- Auto-scaling limits
+- Logging retention
 
-- `GET /api/health`: Health check endpoint
-  - Returns: `{"status": "healthy", "message": "Backend is running successfully"}`
-
-- `GET /api/message`: Get the integration message
-  - Returns: `{"message": "You've successfully integrated the backend!"}`
+Deploy to each environment separately using respective tfvars files.
