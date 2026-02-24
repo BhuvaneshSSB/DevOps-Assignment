@@ -44,3 +44,9 @@ variable "max_capacity" {
   type    = number
   default = 5
 }
+
+variable "github_repository" {
+  type        = string
+  description = "GitHub repository in format owner/repo"
+  default     = "BhuvaneshSSB/DevOps-Assignment"
+}
