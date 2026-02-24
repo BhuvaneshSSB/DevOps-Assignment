@@ -19,10 +19,14 @@ resource "aws_s3_bucket_versioning" "frontend" {
 resource "aws_s3_bucket_public_access_block" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_cloudfront_origin_access_identity" "frontend" {
+  comment = "OAI for ${var.app_name}"
 }
 
 resource "aws_s3_bucket_policy" "frontend" {
@@ -32,10 +36,12 @@ resource "aws_s3_bucket_policy" "frontend" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.frontend.arn}/*"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.frontend.iam_arn
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.frontend.arn}/*"
       }
     ]
   })
@@ -89,10 +95,6 @@ resource "aws_cloudfront_distribution" "frontend" {
   tags = {
     Name = "${var.app_name}-frontend-cloudfront"
   }
-}
-
-resource "aws_cloudfront_origin_access_identity" "frontend" {
-  comment = "OAI for ${var.app_name}"
 }
 
 data "aws_caller_identity" "current" {}
