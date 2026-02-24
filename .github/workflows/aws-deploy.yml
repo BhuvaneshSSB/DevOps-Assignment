@@ -116,23 +116,12 @@ jobs:
 
       - name: Upload frontend to S3
         run: |
-          aws s3 sync ./frontend/out s3://${{ steps.s3-bucket.outputs.bucket }}/ --delete
-
-      - name: Set S3 cache headers
-        run: |
-          aws s3api put-bucket-lifecycle-configuration \
-            --bucket ${{ steps.s3-bucket.outputs.bucket }} \
-            --lifecycle-configuration '{
-              "Rules": [
-                {
-                  "ID": "CacheControl",
-                  "Status": "Enabled",
-                  "Prefix": "",
-                  "ExpirationInDays": 365,
-                  "NoncurrentVersionExpirationInDays": 30
-                }
-              ]
-            }' || true
+          if [ -d ./frontend/.next/static ]; then
+            aws s3 sync ./frontend/.next/static s3://${{ steps.s3-bucket.outputs.bucket }}/static/ --delete
+          fi
+          if [ -f ./frontend/.next/server/app/page.html ]; then
+            aws s3 cp ./frontend/.next/server/app/page.html s3://${{ steps.s3-bucket.outputs.bucket }}/index.html --content-type "text/html"
+          fi
 
       - name: Get CloudFront distribution ID
         id: cloudfront
