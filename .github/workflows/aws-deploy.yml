@@ -108,6 +108,11 @@ jobs:
         run: |
           npm run build
 
+      - name: Export frontend
+        working-directory: ./frontend
+        run: |
+          npm run export
+
       - name: Get S3 bucket name
         id: s3-bucket
         run: |
@@ -116,12 +121,7 @@ jobs:
 
       - name: Upload frontend to S3
         run: |
-          if [ -d ./frontend/.next/static ]; then
-            aws s3 sync ./frontend/.next/static s3://${{ steps.s3-bucket.outputs.bucket }}/static/ --delete
-          fi
-          if [ -f ./frontend/.next/server/app/page.html ]; then
-            aws s3 cp ./frontend/.next/server/app/page.html s3://${{ steps.s3-bucket.outputs.bucket }}/index.html --content-type "text/html"
-          fi
+          aws s3 sync ./frontend/out s3://${{ steps.s3-bucket.outputs.bucket }}/ --delete
 
       - name: Get CloudFront distribution ID
         id: cloudfront
