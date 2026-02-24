@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'frontend/**'
       - 'infrastructure/docker/**'
       - '.github/workflows/aws-deploy.yml'
 
@@ -21,7 +22,7 @@ env:
   ECS_TASK_DEFINITION_DEV: devops-assignment-backend
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,6 +38,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role
           aws-region: ${{ env.AWS_REGION }}
 
+      # Backend deployment steps
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
@@ -83,15 +85,70 @@ jobs:
             --task-definition ${{ env.ECS_TASK_DEFINITION_DEV }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Wait for service to stabilize
+      - name: Wait for ECS service to stabilize
         run: |
           aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER_DEV }} \
             --services ${{ env.ECS_SERVICE_DEV }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Verify deployment
+      # Frontend deployment steps
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
         run: |
-          echo "Deployment completed successfully"
-          echo "Service: ${{ env.ECS_SERVICE_DEV }}"
-          echo "Cluster: ${{ env.ECS_CLUSTER_DEV }}"
+          npm install
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          npm run build
+
+      - name: Get S3 bucket name
+        id: s3-bucket
+        run: |
+          BUCKET_NAME=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'devops-assignment-frontend-dev')].Name" --output text)
+          echo "bucket=$BUCKET_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload frontend to S3
+        run: |
+          aws s3 sync ./frontend/out s3://${{ steps.s3-bucket.outputs.bucket }}/ --delete
+
+      - name: Set S3 cache headers
+        run: |
+          aws s3api put-bucket-lifecycle-configuration \
+            --bucket ${{ steps.s3-bucket.outputs.bucket }} \
+            --lifecycle-configuration '{
+              "Rules": [
+                {
+                  "ID": "CacheControl",
+                  "Status": "Enabled",
+                  "Prefix": "",
+                  "ExpirationInDays": 365,
+                  "NoncurrentVersionExpirationInDays": 30
+                }
+              ]
+            }' || true
+
+      - name: Get CloudFront distribution ID
+        id: cloudfront
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?DefaultRootObject=='index.html' && contains(Origins[0].DomainName, 'devops-assignment-frontend-dev')].Id" --output text)
+          echo "distribution_id=$DIST_ID" >> $GITHUB_OUTPUT
+
+      - name: Invalidate CloudFront cache
+        if: steps.cloudfront.outputs.distribution_id != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ steps.cloudfront.outputs.distribution_id }} \
+            --paths "/*"
+
+      - name: Deployment summary
+        run: |
+          echo "Backend deployment completed"
+          echo "Frontend deployment completed"
+          echo "All services updated successfully"
