@@ -106,7 +106,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: http://devops-assignment-dev-alb-1234567890.ap-south-1.elb.amazonaws.com:8000
+          NEXT_PUBLIC_API_URL: http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000
         run: |
           npm run build
 
