@@ -12,13 +12,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
@@ -64,65 +57,10 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-# Self-signed certificate for dev (for testing)
-resource "tls_private_key" "backend" {
-  algorithm = "RSA"
-}
-
-resource "tls_self_signed_cert" "backend" {
-  private_key_pem = tls_private_key.backend.private_key_pem
-
-  subject {
-    common_name  = aws_lb.main.dns_name
-    organization = "DevOps Assignment"
-  }
-
-  validity_period_hours = 8760
-
-  allowed_uses = [
-    "key_encipherment",
-    "digital_signature",
-    "server_auth",
-  ]
-}
-
-resource "aws_acm_certificate" "backend" {
-  private_key      = tls_private_key.backend.private_key_pem
-  certificate_body = tls_self_signed_cert.backend.cert_pem
-
-  tags = {
-    Name = "${var.app_name}-backend-cert"
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# HTTP to HTTPS redirect
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
-
-  default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# HTTPS listener
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.backend.arn
 
   default_action {
     type             = "forward"
