@@ -93,6 +93,16 @@ jobs:
             --region ${{ env.AWS_REGION }}
 
       # Frontend deployment steps
+      - name: Get ALB DNS name
+        id: alb-dns
+        run: |
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --query "LoadBalancers[?LoadBalancerName=='devops-assignment-dev-alb'].DNSName" \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+          echo "dns=$ALB_DNS" >> $GITHUB_OUTPUT
+          echo "Backend ALB DNS: $ALB_DNS"
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -100,13 +110,15 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://${{ steps.alb-dns.outputs.dns }}
         run: |
           npm install
 
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000
+          NEXT_PUBLIC_API_URL: https://${{ steps.alb-dns.outputs.dns }}
         run: |
           npm run build
 
@@ -118,7 +130,11 @@ jobs:
 
       - name: Upload frontend to S3
         run: |
-          aws s3 sync ./frontend/out s3://${{ steps.s3-bucket.outputs.bucket }}/ --delete
+          if [ -d ./frontend/out ]; then
+            aws s3 sync ./frontend/out s3://${{ steps.s3-bucket.outputs.bucket }}/ --delete
+          elif [ -d ./frontend/.next/static ]; then
+            aws s3 sync ./frontend/.next/static s3://${{ steps.s3-bucket.outputs.bucket }}/static/ --delete
+          fi
 
       - name: Get CloudFront distribution ID
         id: cloudfront
