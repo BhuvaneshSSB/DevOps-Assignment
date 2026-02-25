@@ -93,15 +93,19 @@ jobs:
             --region ${{ env.AWS_REGION }}
 
       # Frontend deployment steps
-      - name: Get ALB DNS name
-        id: alb-dns
+      - name: Determine API URL
+        id: api-url
         run: |
-          ALB_DNS=$(aws elbv2 describe-load-balancers \
-            --query "LoadBalancers[?LoadBalancerName=='devops-assignment-dev-alb'].DNSName" \
-            --output text \
-            --region ${{ env.AWS_REGION }})
-          echo "dns=$ALB_DNS" >> $GITHUB_OUTPUT
-          echo "Backend ALB DNS: $ALB_DNS"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "url=${{ secrets.API_URL_PROD }}" >> $GITHUB_OUTPUT
+            echo "Environment: PROD"
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
+            echo "Environment: STAGING"
+          else
+            echo "url=${{ secrets.API_URL_DEV }}" >> $GITHUB_OUTPUT
+            echo "Environment: DEV"
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -111,14 +115,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: "https://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com"
+          NEXT_PUBLIC_API_URL: ${{ steps.api-url.outputs.url }}
         run: |
           npm install
 
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: "https://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com"
+          NEXT_PUBLIC_API_URL: ${{ steps.api-url.outputs.url }}
         run: |
           npm run build
 
@@ -153,4 +157,5 @@ jobs:
         run: |
           echo "Backend deployment completed"
           echo "Frontend deployment completed"
+          echo "API URL: ${{ steps.api-url.outputs.url }}"
           echo "All services updated successfully"
