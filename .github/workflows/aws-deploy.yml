@@ -97,10 +97,10 @@ jobs:
         id: api-url
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "url=http://devops-assignment-prod-alb-XXXX.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
+            echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
             echo "Environment: PROD"
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "url=http://devops-assignment-staging-alb-XXXX.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
+            echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
             echo "Environment: STAGING"
           else
             echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
