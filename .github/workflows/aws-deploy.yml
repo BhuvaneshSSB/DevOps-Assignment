@@ -111,14 +111,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: https://${{ steps.alb-dns.outputs.dns }}
+          NEXT_PUBLIC_API_URL: "https://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com"
         run: |
           npm install
 
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: https://${{ steps.alb-dns.outputs.dns }}
+          NEXT_PUBLIC_API_URL: "https://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com"
         run: |
           npm run build
 
