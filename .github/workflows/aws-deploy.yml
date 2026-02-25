@@ -92,7 +92,7 @@ jobs:
             --services ${{ env.ECS_SERVICE_DEV }} \
             --region ${{ env.AWS_REGION }}
 
-      # Frontend deployment steps
+      # Frontend deployment step
       - name: Determine API URL
         id: api-url
         run: |
