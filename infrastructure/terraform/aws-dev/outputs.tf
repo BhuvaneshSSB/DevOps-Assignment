@@ -5,7 +5,7 @@ output "alb_dns_name" {
 }
 
 output "backend_url" {
-  value = "https://${aws_lb.main.dns_name}:443"
+  value = "http://${aws_lb.main.dns_name}:8000"
 }
 
 output "cloudfront_domain_name" {
