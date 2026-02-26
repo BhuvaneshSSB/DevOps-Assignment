@@ -101,14 +101,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: "https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
+          NEXT_PUBLIC_API_URL: "https://xgyh47majd.execute-api.ap-south-1.amazonaws.com/dev"
         run: |
           npm install
 
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: "https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
+          NEXT_PUBLIC_API_URL: "https://xgyh47majd.execute-api.ap-south-1.amazonaws.com/dev"
         run: |
           npm run build
 
@@ -143,5 +143,5 @@ jobs:
         run: |
           echo "Backend deployment completed"
           echo "Frontend deployment completed"
-          echo "API Gateway Endpoint: https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
+          echo "API Gateway Endpoint: https://xgyh47majd.execute-api.ap-south-1.amazonaws.com/dev"
           echo "All services updated successfully"
