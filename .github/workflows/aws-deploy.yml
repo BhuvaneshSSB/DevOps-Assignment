@@ -92,21 +92,7 @@ jobs:
             --services ${{ env.ECS_SERVICE_DEV }} \
             --region ${{ env.AWS_REGION }}
 
-      # Frontend deployment step
-      - name: Determine API URL
-        id: api-url
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
-            echo "Environment: PROD"
-          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
-            echo "Environment: STAGING"
-          else
-            echo "url=http://devops-assignment-dev-alb-1662921839.ap-south-1.elb.amazonaws.com:8000" >> $GITHUB_OUTPUT
-            echo "Environment: DEV"
-          fi
-
+      # Frontend deployment steps
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -115,14 +101,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: ${{ steps.api-url.outputs.url }}
+          NEXT_PUBLIC_API_URL: "https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
         run: |
           npm install
 
       - name: Build frontend
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: ${{ steps.api-url.outputs.url }}
+          NEXT_PUBLIC_API_URL: "https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
         run: |
           npm run build
 
@@ -157,5 +143,5 @@ jobs:
         run: |
           echo "Backend deployment completed"
           echo "Frontend deployment completed"
-          echo "API URL: ${{ steps.api-url.outputs.url }}"
+          echo "API Gateway Endpoint: https://rwg011nayf.execute-api.ap-south-1.amazonaws.com/dev/api"
           echo "All services updated successfully"
