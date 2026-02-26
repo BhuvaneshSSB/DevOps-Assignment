@@ -185,3 +185,5 @@ resource "aws_appautoscaling_policy" "ecs_policy_memory" {
     target_value = 75.0
   }
 }
+
+
